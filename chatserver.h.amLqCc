@@ -1,0 +1,31 @@
+#ifndef CHATSERVER_H
+#define CHATSERVER_H
+
+#include <QObject>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QList>
+
+class ChatServer : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit ChatServer(QObject *parent = nullptr);
+    void startServer();
+
+signals:
+    void serverStarted();             // Emitted when the server starts
+    void newMessageReceived(const QString &message);  // Signal to notify new message received
+
+private slots:
+    void onNewConnection();           // Slot for new client connections
+    void onMessageReceived();         // Slot for receiving messages from clients
+    void onClientDisconnected();      // Slot for handling client disconnections
+
+private:
+    QTcpServer *serverSocket;         // The server socket
+    QList<QTcpSocket*> clients;       // List of connected clients
+};
+
+#endif // CHATSERVER_H

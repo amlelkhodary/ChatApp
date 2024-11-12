@@ -1,0 +1,58 @@
+#include "chatpresenter.h"
+#include <QTcpSocket>
+#include <QHostAddress>
+#include <QDebug>
+
+ChatPresenter::ChatPresenter(QObject *parent) : QObject(parent)
+{
+    clientSocket = new QTcpSocket(this); // Create the QTcpSocket object
+
+    // Connect signals to slots
+    connect(clientSocket, &QTcpSocket::connected, this, &ChatPresenter::onConnected);
+    connect(clientSocket, &QTcpSocket::readyRead, this, &ChatPresenter::onMessageReceived);
+    connect(clientSocket, &QTcpSocket::disconnected, this, &ChatPresenter::onDisconnected);
+}
+
+void ChatPresenter::handleConnect(const QString &ip, int port)
+{
+    // Connect to the server at the specified IP address and port
+    clientSocket->connectToHost(QHostAddress(ip), port);
+
+    if (clientSocket->waitForConnected(3000)) {
+        qDebug() << "Connected to server!";
+        emit connectedToServer();  // Notify that we're connected
+    } else {
+        qDebug() << "Error connecting to server: " << clientSocket->errorString();
+    }
+}
+
+void ChatPresenter::sendMessage(const QString &message)
+{
+    if (clientSocket->state() == QAbstractSocket::ConnectedState) {
+        // Send the message to the server
+        clientSocket->write(message.toUtf8());
+    } else {
+        qDebug() << "Not connected to server, cannot send message.";
+    }
+}
+
+void ChatPresenter::onMessageReceived()
+{
+    // Read the message from the server
+    QByteArray data = clientSocket->readAll();
+    QString message = QString::fromUtf8(data);
+
+    // Emit the messageReceived signal to update the UI
+    emit messageReceived(message);
+}
+
+void ChatPresenter::onConnected()
+{
+    qDebug() << "Successfully connected to the server.";
+}
+
+void ChatPresenter::onDisconnected()
+{
+    qDebug() << "Disconnected from server.";
+    emit disconnectedFromServer();  // Emit disconnected signal
+}

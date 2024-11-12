@@ -1,0 +1,11 @@
+release/chatclient.o
+release/chatmodel.o
+release/chatpresenter.o
+release/chatserver.o
+release/main.o
+release/mainwindow.o
+release/moc_chatclient.o
+release/moc_chatmodel.o
+release/moc_chatpresenter.o
+release/moc_chatserver.o
+release/moc_mainwindow.o
