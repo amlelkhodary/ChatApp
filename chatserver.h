@@ -12,7 +12,6 @@ class ChatServer : public QObject
 
 public:
     explicit ChatServer(QObject *parent = nullptr);
-    void startServer();
 
 signals:
     void serverStarted();

@@ -17,12 +17,15 @@ void ChatPresenter::sendMessage(const QString &message)
     if (clientSocket->state() == QTcpSocket::ConnectedState) {
         // Prefix the message with "User:" to identify as a client message
         QString formattedMessage = "User: " + message;
-        clientSocket->write(message.toUtf8());  // Send the message to the server
+        clientSocket->write(formattedMessage.toUtf8());  // Send the message to the server
     }
 }
 
 void ChatPresenter::onMessageReceived()
 {
-    QByteArray data = clientSocket->readAll();  // Read incoming data from the socket
-    emit newMessageReceived(QString::fromUtf8(data));  // Emit the message to the main window
+    QByteArray data = clientSocket->readAll();
+    QString receivedMessage = QString::fromUtf8(data);
+
+    // Emit the signal to update the MainWindow's chat area
+    emit newMessageReceived(receivedMessage);
 }

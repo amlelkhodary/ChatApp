@@ -29,10 +29,10 @@ private slots:
     void onTextChanged(const QString &text);
 
 private:
-    Ui::MainWindow *ui;
-    ChatServer *server;
-    ChatPresenter *presenter;
-    QThread *serverThread;
+    Ui::MainWindow *ui; //To access the widgets inside the ui
+    ChatServer *server; //instance from the chat server class
+    ChatPresenter *presenter; //instance from the presenter class
+    QThread *serverThread; //To start a new thread for the server
 };
 
 #endif // MAINWINDOW_H

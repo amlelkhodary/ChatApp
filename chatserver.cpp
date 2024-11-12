@@ -5,15 +5,10 @@ ChatServer::ChatServer(QObject *parent) : QObject(parent)
 {
     serverSocket = new QTcpServer(this);
     connect(serverSocket, &QTcpServer::newConnection, this, &ChatServer::onNewConnection);
-}
-
-void ChatServer::startServer()
-{
     if (!serverSocket->listen(QHostAddress::Any, 1235)) {
         qCritical() << "Server failed to start!";
         return;
     }
-    emit serverStarted();
     qDebug() << "Server started on port 1235";
 }
 
@@ -30,16 +25,17 @@ void ChatServer::onNewConnection()
 
 void ChatServer::onMessageReceived()
 {
-    QTcpSocket *clientSocket = qobject_cast<QTcpSocket *>(sender());
-    if (clientSocket) {
-        QByteArray data = clientSocket->readAll();
-        // Broadcast the message to all connected clients
-        for (QTcpSocket *socket : clients) {
-            if (socket != clientSocket && socket->state() == QTcpSocket::ConnectedState) {
-                socket->write(data);
-            }
+    // Identify which client sent the message
+    QTcpSocket *senderSocket = qobject_cast<QTcpSocket *>(sender());
+    if (!senderSocket) return;
+
+    QByteArray data = senderSocket->readAll();
+
+    // Broadcast the message to all clients except the sender
+    for (QTcpSocket *client : clients) {
+        if (client != senderSocket && client->state() == QTcpSocket::ConnectedState) {
+            client->write(data); // Send the message to the client
         }
-        emit newMessageReceived(QString::fromUtf8(data));
     }
 }
 

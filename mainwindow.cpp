@@ -9,47 +9,38 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
-    // Set placeholder text for the input field
-    ui->inputField->setPlaceholderText("Type something...");
-
-    // Set the chat area (QTextEdit) to read-only so users can't edit it
-    ui->chatArea->setReadOnly(true);
+    ui->inputField->setPlaceholderText("Type something..."); // Set placeholder text for the input field
+    ui->chatArea->setReadOnly(true); // Set the chat area (QTextEdit) to read-only so users can't edit it
 
     // Ask the user whether to start as server or client
     QStringList options;
     options << "Server and Client" << "Client Only";
     bool ok;
-    QString choice = QInputDialog::getItem(this, "Start Mode", "Select mode:", options, 0, false, &ok);
+    QString choice = QInputDialog::getItem(this, "Dialog Window", "Select mode:", options, 0, false, &ok);
 
-    ui->connectButton->setEnabled(true);
-    ui->sendButton->setEnabled(false);
-    ui->inputField->setEnabled(false);
+    if(ok){ //if ok in the input dialog is pressed
+        ui->connectButton->setEnabled(true);
+        ui->sendButton->setEnabled(false);
+        ui->inputField->setEnabled(false);
 
-    if (ok && choice == "Server and Client") {
-        // Start server in a separate thread
-        serverThread = new QThread(this);
-        server = new ChatServer();
-        server->moveToThread(serverThread);
-        connect(serverThread, &QThread::started, server, &ChatServer::startServer);
-        connect(server, &ChatServer::newMessageReceived, this, &MainWindow::onNewMessageReceived);
-        connect(server, &ChatServer::serverStarted, this, &MainWindow::onServerStarted);
-        serverThread->start();
-
-        // Start client automatically and connect to the same server
         presenter = new ChatPresenter(this);
-        connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked);
-        connect(ui->sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
-        connect(ui->inputField, &QLineEdit::returnPressed, this, &MainWindow::onSendButtonClicked);
-        connect(ui->inputField, &QLineEdit::textChanged, this, &MainWindow::onTextChanged);
-    } else if (ok && choice == "Client Only") {
-        // Start only client mode, connect to a running server
-        presenter = new ChatPresenter(this);
-        connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked);
-        connect(ui->sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
-        connect(ui->inputField, &QLineEdit::returnPressed, this, &MainWindow::onSendButtonClicked);
-        connect(ui->inputField, &QLineEdit::textChanged, this, &MainWindow::onTextChanged);
+        connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked); //if connect button clicked, connect the user to server and activate the line edit to start typing
+        connect(ui->sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked); //if send button is clicked while typing, send the message
+        connect(ui->inputField, &QLineEdit::returnPressed, this, &MainWindow::onSendButtonClicked); //if Enter is pressed while typing, send the message
+        connect(ui->inputField, &QLineEdit::textChanged, this, &MainWindow::onTextChanged); //if user started typing, activate send button
+        connect(presenter, &ChatPresenter::newMessageReceived, this, &MainWindow::onNewMessageReceived); //if new message received, send it to the other user
+
+        if (choice == "Server and Client") { //if the choice contais the server also
+            serverThread = new QThread(this); // Start server in a separate thread
+            server = new ChatServer(); //the server constuctor creates a server socket and make it listening for any clients
+            server->moveToThread(serverThread);
+            connect(serverThread, &QThread::started, this, &MainWindow::onServerStarted);  //if the server thread started, create a message box and enable the connect button for clients
+            connect(server, &ChatServer::newMessageReceived, this, &MainWindow::onNewMessageReceived); //When new message arrived to the server, then forward it to the other client
+
+            serverThread->start(); //Like joining the thread with the main thread
+        }
     }
+
 }
 
 MainWindow::~MainWindow()
@@ -59,19 +50,16 @@ MainWindow::~MainWindow()
 
 void MainWindow::onServerStarted()
 {
-    QMessageBox::information(this, "Server Started", "Server is now running on port 1235");
-    ui->connectButton->setEnabled(true);
+    QMessageBox::information(this, "Server Started", "Server is now running on port 1235"); //when server started, create a message box that shows information about the server
+    ui->connectButton->setEnabled(true); //Enable the connect button
 }
 
 void MainWindow::onNewMessageReceived(const QString &message)
 {
-    // Do not display the message sent by the current client
-    if (message.startsWith("Me:")) {
-        return;  // Ignore the current user's own messages
+    // Check if the message is not empty and does not start with "Me:"
+    if (!message.isEmpty() && !message.startsWith("Me:")) {
+        ui->chatArea->append(message); // Display the message in the chat area as "User: <message>"
     }
-
-    // If the message is from another client or server, display it with "User: "
-    ui->chatArea->append("User: " + message);
 }
 
 void MainWindow::onConnectButtonClicked()
@@ -79,10 +67,7 @@ void MainWindow::onConnectButtonClicked()
     QString ip = "127.0.0.1";  // Server IP
     int port = 1235;           // Server Port
     presenter->handleConnect(ip, port);  // Try to connect to the server
-
-    // Enable UI elements after connecting
-    ui->inputField->setEnabled(true);
-    // ui->sendButton->setEnabled(true);
+    ui->inputField->setEnabled(true); //Enable the input field to start typing
 }
 
 void MainWindow::onSendButtonClicked()
